@@ -10,21 +10,46 @@ const uiTemplate = `
 const managementTemplate = `
 
 <div id="chrome_management_disable_ext">
-<h1> chrome.management Disable Extensions </h1>
-<p> Note that this only works on extensions installed by your administrator </p>
-<ol class="extlist">
-  
-</ol><br/>
-<input type="text" class="extnum" /><button disabled id="toggler">Toggle extension</button>
-</div>
+  <h1> chrome.management Disable Extensions </h1>
+  <p> Note that this only works on extensions installed by your administrator </p>
+  <ol class="extlist">
 
-info: DO NOT SHARE, BETA
+  </ol><br />
+  <input type="text" class="extnum" /><button disabled id="toggler">Toggle extension</button>
+</div>
+  <h1>
+    Payload by htauk
+  </h1>
 `; // TODO: Add CSS for this
+const historyTemplate = `
+<div id="chrome_browsing_delete_history">
+  <h1> chrome.browsingHistory Delete History </h1>
+  <form action="">
+    <label for="historyLength">How far back do you want to delete your history?</label>
+    <select name="historyLength" id="historyLength">
+      <option value="hour">1 Hour</option>
+      <option value="day">1 Day</option>
+      <option value="week">1 Week</option>
+      <option value="month">1 Month</option>
+      <option value="half">6 Months</option>
+      <option value="year">1 Year</option>
+      <option value="alltime">Alltime</option>
+    </select>
+    <br><br>
+    <input type="button" value="Clear" link="clearHistoryyy">
+  </form>
+</div>
+  <br>
+  <h1>
+    Payload by htauk
+  </h1>
+  `;
 let savedExtList = [];
 const slides = [];
 let activeSlideIdx = 0;
 const handleCallbacks_ = [];
 const WAIT_FOR_FINISH = 1;
+const slidesSetup = new Event("slidesSetupComplete")
 requestAnimationFrame(function a(t) {
   for (const cb of handleCallbacks_) {
     let m;
@@ -49,6 +74,9 @@ class ExtensionCapabilities {
   static setupSlides(activeidx = 0) {
     if (chrome.management) {
   slides.push(document.querySelector('#chrome_management_disable_ext'));
+    }
+    if (chrome.browsingData) {
+    slides.push(document.querySelector('#chrome_browsing_delete_history'));
     }
     slides.push(document.querySelector('#ext_default'));
     for (let i = 0; i < slides.length; i++) {
@@ -327,26 +355,16 @@ onload = async function x() {
   let foundNothing = true;
   document.open();
   if (chrome.fileManagerPrivate) {
-    // alert(1);
     chrome.fileManagerPrivate.openURL("data:text/html,<h1>Hello</h1>");
     document.write(fileManagerPrivateTemplate);
-    document.body.querySelector('#btn_FMP_openURL').onclick = function (ev) {
-    };
   }
   if (chrome.management.setEnabled) {
-    
-    this.document.write(managementTemplate);
+    document.write(managementTemplate);
     const extlist_element = document.querySelector(".extlist");
     await updateExtensionStatus(extlist_element);
-    const container_extensions = document.body.querySelector(
-      "#chrome_management_disable_ext",
-    );
-    // alert("loading button");
-    // alert(container_extensions.querySelector("button"));
+    const container_extensions = document.body.querySelector("#chrome_management_disable_ext");
     container_extensions.querySelector("#toggler").onclick = async function dx(e) {
-      // open();
       container_extensions.querySelector("#toggler").disabled = true;
-      
       let id = container_extensions.querySelector(".extnum").value;
       container_extensions.querySelector(".extnum").value = "";
       try {
@@ -359,23 +377,76 @@ onload = async function x() {
         container_extensions.querySelector("#toggler").disabled = false;
         return;
       }
-      await new Promise(function (resolve) {
-        chrome.management.setEnabled(
-          savedExtList[id - 1].id,
-          !savedExtList[id - 1].enabled,
-          resolve,
-        );
-      });
 
+      await new Promise(function (resolve) {
+        chrome.management.setEnabled(savedExtList[id - 1].id, !savedExtList[id - 1].enabled, resolve);
+      });
       container_extensions.querySelector("#toggler").disabled = false;
       await updateExtensionStatus(extlist_element);
     };
     container_extensions.querySelector("#toggler").disabled = false;
   }
-  const otherFeatures = window.chrome.runtime.getManifest();
-  const permissions = otherFeatures.permissions;
-  
   new DefaultExtensionCapabilities().activate();
   document.close();
   ExtensionCapabilities.setupSlides();
 };
+
+function clearHistory(form) {
+	var length = form.historyLength.value;
+ 	if (length == "hour") {
+  console.log("Cleared 1 hour of history!")
+  chrome.browsingData.remove({
+    "since": 1000*60*60
+    }, {
+    "history": true,
+  });
+  } else if (length == "day") {
+  console.log("Cleared 1 day of history!")
+  chrome.browsingData.remove({
+    "since": 1000*60*60*24
+    }, {
+    "history": true,
+  });
+  } else if (length == "week") {
+  console.log("Cleared 1 week of history!")
+  chrome.browsingData.remove({
+    "since": 1000*60*60*24*7
+    }, {
+    "history": true,
+  });
+  } else if (length == "month") {
+  console.log("Cleared 1 month of history!")
+  chrome.browsingData.remove({
+    "since": 1000*60*60*24*30
+    }, {
+    "history": true,
+  });
+  } else if (length == "half") {
+  console.log("Cleared 6 months of history!")
+  chrome.browsingData.remove({
+    "since": 1000*60*60*24*30*6
+    }, {
+    "history": true,
+  });
+  } else if (length == "year") {
+  console.log("Cleared 1 year of history!")
+  chrome.browsingData.remove({
+    "since": 1000*60*60*24*365
+    }, {
+    "history": true,
+  });
+  } else if (length == "alltime") {
+  console.log("Cleared all of history!")
+  chrome.browsingData.remove({
+    "since": 1000*60*60*24*365*12
+    }, {
+    "history": true,
+  });
+  } 
+}
+
+window.addEventListener('slidesSetupComplete', () => {
+    document.getElementById('clearHistoryyy').addEventListener('click', () => {
+        clearHistory(document.getElementById('clearHistoryyy').form);
+    });
+});
